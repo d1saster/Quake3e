@@ -128,6 +128,14 @@ ifndef GENERATE_DEPENDENCIES
 GENERATE_DEPENDENCIES=1
 endif
 
+ifndef USE_OPENAL
+USE_OPENAL=1
+endif
+
+ifndef USE_OPENAL_DLOPEN
+USE_OPENAL_DLOPEN=1
+endif
+
 ifndef USE_CCACHE
 USE_CCACHE=0
 endif
@@ -189,10 +197,15 @@ INSTALL=install
 MKDIR=mkdir
 
 ifneq ($(call bin_path, $(PKG_CONFIG)),)
+  OPENAL_CFLAGS ?= $(shell $(PKG_CONFIG) --silence-errors --cflags openal)
+  OPENAL_LIBS ?= $(shell $(PKG_CONFIG) --silence-errors --libs openal)
   SDL_INCLUDE ?= $(shell $(PKG_CONFIG) --silence-errors --cflags-only-I sdl2)
   SDL_LIBS ?= $(shell $(PKG_CONFIG) --silence-errors --libs sdl2)
   X11_INCLUDE ?= $(shell $(PKG_CONFIG) --silence-errors --cflags-only-I x11)
   X11_LIBS ?= $(shell $(PKG_CONFIG) --silence-errors --libs x11)
+else
+  # assume they're in the system default paths (no -I or -L needed)
+  OPENAL_LIBS ?= -lopenal
 endif
 
 # supply some reasonable defaults for SDL/X11?
@@ -257,6 +270,13 @@ endif
 
 ifeq ($(USE_LOCAL_HEADERS),1)
   BASE_CFLAGS += -DUSE_LOCAL_HEADERS=1
+endif
+
+ifeq ($(USE_OPENAL),1)
+  BASE_CFLAGS += -DUSE_OPENAL
+  ifeq ($(USE_OPENAL_DLOPEN),1)
+    BASE_CFLAGS += -DUSE_OPENAL_DLOPEN
+  endif
 endif
 
 ifeq ($(USE_CURL),1)
@@ -398,6 +418,13 @@ ifdef MINGW
     CLIENT_LDFLAGS += -lcurl -lwldap32 -lcrypt32
   endif
 
+  ifeq ($(USE_OPENAL),1)
+    ifeq ($(USE_OPENAL_DLOPEN),0)
+      BASE_CFLAGS += $(OPENAL_CFLAGS)
+      CLIENT_LDFLAGS += $(OPENAL_LIBS)
+    endif
+  endif
+
   DEBUG_CFLAGS = $(BASE_CFLAGS) -DDEBUG -D_DEBUG -g -O0
   RELEASE_CFLAGS = $(BASE_CFLAGS) -DNDEBUG $(OPTIMIZE)
 
@@ -427,6 +454,15 @@ ifeq ($(COMPILE_PLATFORM),darwin)
   else
     BASE_CFLAGS += -I/Library/Frameworks/SDL2.framework/Headers
     CLIENT_LDFLAGS = -F/Library/Frameworks -framework SDL2
+  endif
+
+  ifeq ($(USE_OPENAL),1)
+    ifneq ($(USE_LOCAL_HEADERS),1)
+      BASE_CFLAGS += -I/System/Library/Frameworks/OpenAL.framework/Headers
+    endif
+    ifneq ($(USE_OPENAL_DLOPEN),1)
+      CLIENT_LDFLAGS += -framework OpenAL
+    endif
   endif
 
   DEBUG_CFLAGS = $(BASE_CFLAGS) -DDEBUG -D_DEBUG -g -O0
@@ -490,6 +526,13 @@ else
   ifeq ($(USE_CURL),1)
     ifeq ($(USE_CURL_DLOPEN),0)
       CLIENT_LDFLAGS += -lcurl
+    endif
+  endif
+
+  ifeq ($(USE_OPENAL),1)
+    ifeq ($(USE_OPENAL_DLOPEN),0)
+      BASE_CFLAGS += $(OPENAL_CFLAGS)
+      CLIENT_LDFLAGS += $(OPENAL_LIBS)
     endif
   endif
 
@@ -838,7 +881,9 @@ Q3OBJ = \
   $(B)/client/snd_dmahd.o \
   $(B)/client/snd_mem.o \
   $(B)/client/snd_mix.o \
+  $(B)/client/snd_openal.o \
   $(B)/client/snd_wavelet.o \
+  $(B)/client/qal.o \
   \
   $(B)/client/snd_main.o \
   $(B)/client/snd_codec.o \
