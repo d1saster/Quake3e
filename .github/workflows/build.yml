@@ -194,13 +194,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-      if: false
       with:
         submodules: recursive
 
     - name: Build ${{ matrix.arch }}
       uses: uraimo/run-on-arch-action@v2.0.5
-      if: false
       with:
         arch: ${{ matrix.arch }}
         distro: ubuntu20.04
@@ -215,8 +213,7 @@ jobs:
           make ${{ matrix.rule }} -j 4 ARCH=${{ matrix.arch }} CC=${{ matrix.cc }} DESTDIR=bin USE_SDL=0 USE_RENDERER_DLOPEN=0 RENDERER_DEFAULT=opengl
 
     - uses: actions/upload-artifact@v2
-      if: false
-      #if: matrix.cc == 'gcc' && matrix.config == 'Release'
+      if: matrix.cc == 'gcc' && matrix.config == 'Release'
       with:
         name: linux-${{ matrix.arch }}
         path: bin
@@ -276,8 +273,8 @@ jobs:
           7z a -r urt-slim-windows-msvc-x86_64.zip  ./windows-msvc-x86_64/*
           7z a -r urt-slim-windows-msvc-arm64.zip   ./windows-msvc-arm64/*
           7z a -r urt-slim-macos-x86_64.zip         ./macos-x86_64/*
-          #7z a -r urt-slim-linux-aarch64.zip  ./linux-aarch64/*
-          #7z a -r urt-slim-linux-armv7.zip    ./linux-armv7/*
+          7z a -r urt-slim-linux-aarch64.zip  ./linux-aarch64/*
+          7z a -r urt-slim-linux-armv7.zip    ./linux-armv7/*
 
       - name: Create latest build
         uses: marvinpinto/action-automatic-releases@latest
@@ -297,11 +294,11 @@ jobs:
     strategy:
       matrix:
         include:
-          #- artifact_dir: linux-aarch64
-          #  artifact_name: urt-slim-linux-aarch64.zip
+          - artifact_dir: linux-aarch64
+            artifact_name: urt-slim-linux-aarch64.zip
 
-          #- artifact_dir: linux-armv7
-          #  artifact_name: urt-slim-linux-armv7.zip
+          - artifact_dir: linux-armv7
+            artifact_name: urt-slim-linux-armv7.zip
 
           - artifact_dir: linux-x86
             artifact_name: urt-slim-linux-x86.zip
